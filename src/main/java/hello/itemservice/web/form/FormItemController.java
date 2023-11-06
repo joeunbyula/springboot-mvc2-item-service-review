@@ -1,7 +1,9 @@
 package hello.itemservice.web.form;
 
+import hello.itemservice.domain.formItem.DeliveryCode;
 import hello.itemservice.domain.formItem.FormItem;
 import hello.itemservice.domain.formItem.FormItemRepository;
+import hello.itemservice.domain.formItem.ItemType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -9,6 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +32,20 @@ public class FormItemController {
         regions.put("BUSAN", "부산");
         regions.put("JEJI", "제주");
         return regions;
+    }
+
+    @ModelAttribute("itemTypes")
+    public ItemType[] itemTypes() {
+        return ItemType.values();
+    }
+
+    @ModelAttribute("deliveryCodes")
+    public List<DeliveryCode> deliveryCodes() {
+        List<DeliveryCode> deliveryCodes = new ArrayList<>();
+        deliveryCodes.add(new DeliveryCode("FAST", "빠른배송"));
+        deliveryCodes.add(new DeliveryCode("NORMAL", "일반배송"));
+        deliveryCodes.add(new DeliveryCode("SLOW", "느린배송"));
+        return deliveryCodes;
     }
 
     @GetMapping
