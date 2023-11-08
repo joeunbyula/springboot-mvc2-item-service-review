@@ -2,16 +2,15 @@ package hello.itemservice.web.validation;
 
 import hello.itemservice.domain.item.Item;
 import hello.itemservice.domain.item.ItemRepository;
+import hello.itemservice.domain.item.groupsInterface.SaveCheck;
+import hello.itemservice.domain.item.groupsInterface.UpdateCheck;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -45,10 +44,40 @@ public class ValidationItemControllerV3 {
         return "validation/v3/addForm";
     }
 
-    @PostMapping("/add")
+    //@PostMapping("/add")
     public String addItem(@Validated @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
 
-        //검증에 실패하면 다시 입력 폼으로
+        //특정 필드가 아닌 복합 룰 검증
+        if(item.getPrice() != null && item.getQuantity() != null) {
+            int resultPrice = item.getPrice() * item.getQuantity();
+            if(resultPrice < 10000) {
+                bindingResult.addError(new ObjectError("item","가격 * 수량의 합은 10,000원 이상이여야 합니다. 현재 값 = "+resultPrice));
+            }
+        }
+
+        if(bindingResult.hasErrors()) {
+            log.info("errors={}",bindingResult);
+            return "validation/v3/addForm";
+        }
+
+        //검증 성공 로직
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v3/items/{itemId}";
+    }
+
+    @PostMapping("/add")
+    public String addItemV2(@Validated(SaveCheck.class) @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
+
+        //특정 필드가 아닌 복합 룰 검증
+        if(item.getPrice() != null && item.getQuantity() != null) {
+            int resultPrice = item.getPrice() * item.getQuantity();
+            if(resultPrice < 10000) {
+                bindingResult.addError(new ObjectError("item","가격 * 수량의 합은 10,000원 이상이여야 합니다. 현재 값 = "+resultPrice));
+            }
+        }
+
         if(bindingResult.hasErrors()) {
             log.info("errors={}",bindingResult);
             return "validation/v3/addForm";
@@ -69,21 +98,8 @@ public class ValidationItemControllerV3 {
         return "validation/v3/editForm";
     }
 
-    @PostMapping("/{itemId}/edit")
-    public String edit(@PathVariable Long itemId, @ModelAttribute Item item, BindingResult bindingResult) {
-
-        //검증 오류 결과 보관
-        if(!StringUtils.hasText(item.getItemName())) {
-            bindingResult.addError(new FieldError("item","itemName","상품 이름은 필수입니다."));
-        }
-
-        if(item.getPrice() == null || (item.getPrice() < 1000 || item.getPrice() > 1000000)) {
-            bindingResult.addError(new FieldError("item","price","가격은 1,000원 ~ 1,000,000 까지 허용됩니다."));
-        }
-
-        if(item.getQuantity() == null || item.getQuantity() >= 9999) {
-            bindingResult.addError(new FieldError("item","quantity","수량은 최대 9,999개 까지 허용됩니다."));
-        }
+    //@PostMapping("/{itemId}/edit")
+    public String edit(@PathVariable Long itemId, @Validated @ModelAttribute Item item, BindingResult bindingResult) {
 
         //특정 필드가 아닌 복합 룰 검증
         if(item.getPrice() != null && item.getQuantity() != null) {
@@ -93,11 +109,32 @@ public class ValidationItemControllerV3 {
             }
         }
 
-        //검증에 실패하면 다시 입력 폼으로
         if(bindingResult.hasErrors()) {
             log.info("errors={}",bindingResult);
             return "validation/v3/editForm";
         }
+
+
+        itemRepository.update(itemId, item);
+        return "redirect:/validation/v3/items/{itemId}";
+    }
+
+    @PostMapping("/{itemId}/edit")
+    public String editV2(@PathVariable Long itemId, @Validated(UpdateCheck.class) @ModelAttribute Item item, BindingResult bindingResult) {
+
+        //특정 필드가 아닌 복합 룰 검증
+        if(item.getPrice() != null && item.getQuantity() != null) {
+            int resultPrice = item.getPrice() * item.getQuantity();
+            if(resultPrice < 10000) {
+                bindingResult.addError(new ObjectError("item","가격 * 수량의 합은 10,000원 이상이여야 합니다. 현재 값 = "+resultPrice));
+            }
+        }
+
+        if(bindingResult.hasErrors()) {
+            log.info("errors={}",bindingResult);
+            return "validation/v3/editForm";
+        }
+
 
         itemRepository.update(itemId, item);
         return "redirect:/validation/v3/items/{itemId}";
